@@ -1,26 +1,23 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*{
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, sans-serif; /* опционально, но полезно */
+    background-color: rgb(44, 44, 44);
+}
+
+main {
+    width: 100%;
+    max-width: 1100px; /* или 1200px, стандарт для лендингов */
+    margin: 0 auto;    /* надёжно центрирует по горизонтали */
+    background-color: rgba(238, 130, 238, 0); /* оставьте для отладки, потом уберёте */
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
 }
