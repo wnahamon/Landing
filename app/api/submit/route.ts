@@ -1,51 +1,39 @@
-// app/api/submit/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-// 🔥 Интерфейс для Бипиума (имена как в настройках сценария!)
-interface BpiumLead {
-  Name: string;
-  NumberPhone: string;
-  Message: string;
-}
-
-// Функция отправки в Бипиум
-async function sendToBpium(lead: BpiumLead) {
-  const response = await fetch('https://ieboldarev.bpium.ru/api/webrequest/leads', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(lead),
-  });
-  
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Bipium error: ${error}`);
-  }
-  
-  return await response.json();
-}
-
-// 🔥 ЭКСПОРТ POST — ОБЯЗАТЕЛЬНО для Next.js App Router!
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await request.json()
     
-    // 🔥 Маппинг: поля формы → поля Бипиума
-    const leadData: BpiumLead = {
-      Name: body.name,              // форма: name → Бипиум: Name
-      NumberPhone: body.phone,      // форма: phone → Бипиум: NumberPhone
-      Message: body.message || '',  // форма: message → Бипиум: Message
-    };
-    
-    const result = await sendToBpium(leadData);
-    
-    return NextResponse.json({ success: true, data: result });
-    
-  } catch (error) {
-    console.error('❌ Error sending lead:', error);
-    
+    // Используем SECRET KEY на сервере!
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY! // <-- Важно: service role key
+    )
+
+    const { data, error } = await supabase
+      .from('leads') 
+      .insert({
+        name: body.name,
+        phone: body.phone,
+        message: body.message
+      })
+      .select()
+
+    if (error) {
+      console.error('Supabase Error:', error)
+      return NextResponse.json(
+        { error: 'Ошибка при сохранении заявки' }, 
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ success: true, data })
+  } catch (e) {
+    console.error('Server Error:', e)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Ошибка сервера' },
+      { error: 'Ошибка сервера' },
       { status: 500 }
-    );
+    )
   }
 }

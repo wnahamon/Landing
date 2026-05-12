@@ -1,6 +1,6 @@
 export default function AboutUs() {
   return (
-    <section className="py-16 px-4 bg-gray-50">
+    <section className="py-16 px-4 bg-gray-50 p-0 m-0">
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           {/* Текст */}
@@ -20,7 +20,7 @@ export default function AboutUs() {
                 "Еженедельные фотоотчёты и онлайн-камера на объекте"
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <div className="mt-1 w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                  <div className="mt-1 w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center">
                     <svg className="w-3 h-3 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>

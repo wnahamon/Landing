@@ -68,7 +68,7 @@ export default function ConslForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 rounded-xl border p-6 shadow-sm bg-white">
+    <form id="form" onSubmit={handleSubmit(onSubmit)} className="space-y-3 border p-6 shadow-sm bg-white">
       <h3 className="text-xl text-black font-bold mb-4">Оставить заявку</h3>
       
       <input type="text" {...register("honeypot")} className="hidden" tabIndex={-1} autoComplete="off" />

@@ -41,7 +41,7 @@ export default function Calc() {
   return (
     <section id="calc" className="max-w-4xl mx-auto bg-white  shadow-xl border border-gray-100 overflow-hidden">
       {/* Шапка */}
-      <div className="bg-gradient-to-r from-gray-600 to-indigo-600 p-6 text-white">
+      <div className="bg-linear-to-r from-gray-600 to-indigo-600 p-6 text-white">
         <h2 className="text-2xl md:text-3xl font-bold">
           Рассчитайте стоимость дома
         </h2>
