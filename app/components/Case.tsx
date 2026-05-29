@@ -4,7 +4,7 @@ export default function Case() {
   return (
     <div className="">
       <div className="flex flex-col items-center">
-        <h2>Примеры наших работ</h2>
+        <h2 className="text-white">Примеры наших работ</h2>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
         {/* Картинка 1 */}

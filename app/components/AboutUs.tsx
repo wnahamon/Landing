@@ -1,6 +1,6 @@
 export default function AboutUs() {
   return (
-    <section className="py-16 px-4 bg-gray-50 p-0 m-0">
+    <section className=" bg-gray-50">
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           {/* Текст */}

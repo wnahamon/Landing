@@ -39,9 +39,9 @@ export default function Calc() {
   }, [area, tech, foundation]);
 
   return (
-    <section id="calc" className="max-w-4xl mx-auto bg-white  shadow-xl border border-gray-100 overflow-hidden">
+    <section id="calc" className="w-full mx-auto bg-white  shadow-xl border border-gray-100 overflow-hidden">
       {/* Шапка */}
-      <div className="bg-linear-to-r from-gray-600 to-indigo-600 p-6 text-white">
+      <div className="bg-gray-600 p-3 text-white">
         <h2 className="text-2xl md:text-3xl font-bold">
           Рассчитайте стоимость дома
         </h2>
