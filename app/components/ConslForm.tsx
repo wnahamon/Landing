@@ -1,17 +1,20 @@
 "use client";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
+import Captcha from "./Captcha";
 
 export const formSchema = z.object({
   name: z.string().min(2, "Минимум 2 символа"),
   phone: z.string().regex(/^\+?[0-9\s-()]{10,18}$/, "Неверный формат телефона"),
-  message: z.string().max(500).optional().default(""),
+  message: z.string().max(500).default(""),
   consent: z.boolean().refine((val) => val === true, {
     message: "Необходимо согласие на обработку персональных данных",
   }),
   honeypot: z.string().optional(),
+  captchaToken: z.string().min(1, "Пожалуйста, пройдите проверку капчи"),
 });
 
 export type FormData = z.infer<typeof formSchema>;
@@ -22,7 +25,9 @@ export default function ConslForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-  } = useForm({
+    setValue,
+    setError,
+  } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -30,26 +35,72 @@ export default function ConslForm() {
       message: "",
       consent: false,
       honeypot: "",
+      captchaToken: "",
     },
   });
 
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [serverError, setServerError] = useState<string>("");
+  const [isVerifyingCaptcha, setIsVerifyingCaptcha] = useState(false);
+
+  // Валидация капчи на бэкенде
+  const verifyCaptchaOnServer = async (token: string): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/verify-captcha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      return data.success === true;
+    } catch (err) {
+      console.error("Captcha verification error:", err);
+      return false;
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
+    // Проверка honeypot (антиспам)
+    if (data.honeypot) {
+      console.log("Bot detected (honeypot)");
+      setStatus("success"); // тихо возвращаем успех, чтобы бот не понял
+      reset();
+      return;
+    }
+
     setStatus("idle");
     setServerError("");
+    setIsVerifyingCaptcha(true);
+
+    // 1. Проверяем капчу на сервере
+    const isCaptchaValid = await verifyCaptchaOnServer(data.captchaToken);
+    setIsVerifyingCaptcha(false);
+
+    if (!isCaptchaValid) {
+      setError("captchaToken", {
+        type: "manual",
+        message: "Проверка капчи не пройдена. Попробуйте ещё раз.",
+      });
+      // Сбросить токен капчи, чтобы пользователь прошёл её заново
+      setValue("captchaToken", "");
+      return;
+    }
+
+    // 2. Отправляем данные формы на основной API
     try {
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Ошибка отправки");
 
       setStatus("success");
       reset();
+      // Очищаем токен капчи в форме
+      setValue("captchaToken", "");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Неизвестная ошибка";
       setStatus("error");
@@ -67,7 +118,10 @@ export default function ConslForm() {
           Перезвоним в течение 24 часов для уточнения деталей.
         </p>
         <button
-          onClick={() => setStatus("idle")}
+          onClick={() => {
+            setStatus("idle");
+            reset();
+          }}
           className="mt-4 text-sm underline text-green-700 hover:text-green-900"
         >
           Отправить ещё одну
@@ -84,6 +138,7 @@ export default function ConslForm() {
     >
       <h3 className="text-xl text-black font-bold mb-4">Оставить заявку</h3>
 
+      {/* Honeypot поле – скрыто для людей, видно для ботов */}
       <input
         type="text"
         {...register("honeypot")}
@@ -92,7 +147,7 @@ export default function ConslForm() {
         autoComplete="off"
       />
 
-      <div>
+      <div className="mb-4">
         <label className="block text-black text-sm font-medium mb-1">
           Ваше имя *
         </label>
@@ -106,7 +161,7 @@ export default function ConslForm() {
         )}
       </div>
 
-      <div>
+      <div className="mb-4">
         <label className="block text-black text-sm font-medium mb-1">
           Телефон *
         </label>
@@ -120,7 +175,7 @@ export default function ConslForm() {
         )}
       </div>
 
-      <div>
+      <div className="mb-4">
         <label className="block text-sm text-black font-medium mb-1">
           Комментарий
         </label>
@@ -135,7 +190,7 @@ export default function ConslForm() {
         )}
       </div>
 
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2 mb-4">
         <input
           type="checkbox"
           {...register("consent")}
@@ -154,23 +209,40 @@ export default function ConslForm() {
         </label>
       </div>
       {errors.consent && (
-        <p className="text-sm text-red-600">{errors.consent.message}</p>
+        <p className="text-sm text-red-600 mb-2">{errors.consent.message}</p>
       )}
 
-      <div
-        id="captcha-container"
-        className="smart-captcha"
-        data-sitekey="ysc1_Y9ltN9soPahKJ8GlyZmvRP29C0Mk0N4TVZKij7PSb497a0a1"
-      >
-        
+      <div className="mb-4">
+        <Captcha
+          onVerify={(token) => {
+            setValue("captchaToken", token, { shouldValidate: true });
+            // Очищаем предыдущую ошибку капчи при успешном получении токена
+            if (errors.captchaToken) {
+              setError("captchaToken", { message: "" });
+            }
+          }}
+          onError={(message) => {
+            setValue("captchaToken", "", { shouldValidate: true });
+            setError("captchaToken", { type: "manual", message });
+          }}
+        />
+        {errors.captchaToken && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.captchaToken.message}
+          </p>
+        )}
       </div>
 
       <button
         type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-gray transition hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+        disabled={isSubmitting || isVerifyingCaptcha}
+        className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {isSubmitting ? "Отправка..." : "Получить смету"}
+        {isVerifyingCaptcha
+          ? "Проверка капчи..."
+          : isSubmitting
+            ? "Отправка..."
+            : "Получить смету"}
       </button>
 
       {serverError && (
