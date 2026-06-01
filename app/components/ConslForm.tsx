@@ -3,11 +3,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
+import SmartCaptcha from "@/components/SmartCaptcha";
 
 export const formSchema = z.object({
   name: z.string().min(2, "Минимум 2 символа"),
   phone: z.string().regex(/^\+?[0-9\s-()]{10,18}$/, "Неверный формат телефона"),
-  message: z.string().max(500).optional().default(""),
+  message: z.string().max(500).default(""),
   consent: z.boolean().refine((val) => val === true, {
     message: "Необходимо согласие на обработку персональных данных",
   }),
@@ -22,7 +23,7 @@ export default function ConslForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-  } = useForm({
+  } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -35,21 +36,32 @@ export default function ConslForm() {
 
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [serverError, setServerError] = useState<string>("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaExpired, setCaptchaExpired] = useState(false);
 
   const onSubmit = async (data: FormData) => {
     setStatus("idle");
     setServerError("");
+
+    // 🔐 Валидация капчи перед отправкой
+    if (!captchaToken || captchaExpired) {
+      setServerError("Пожалуйста, пройдите проверку капчи");
+      setCaptchaExpired(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, captchaToken }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Ошибка отправки");
 
       setStatus("success");
       reset();
+      setCaptchaToken(null); // Сброс токена после успешной отправки
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Неизвестная ошибка";
       setStatus("error");
@@ -84,6 +96,7 @@ export default function ConslForm() {
     >
       <h3 className="text-xl text-black font-bold mb-4">Оставить заявку</h3>
 
+      {/* Honeypot для защиты от спама */}
       <input
         type="text"
         {...register("honeypot")}
@@ -157,13 +170,16 @@ export default function ConslForm() {
         <p className="text-sm text-red-600">{errors.consent.message}</p>
       )}
 
-      <div
-        id="captcha-container"
-        className="smart-captcha"
-        data-sitekey="ysc1_Y9ltN9soPahKJ8GlyZmvRP29C0Mk0N4TVZKij7PSb497a0a1"
-      >
-        
-      </div>
+      {/* ✅ СмартКапча вместо статичного div */}
+      <SmartCaptcha
+        siteKey={process.env.NEXT_PUBLIC_YANDEX_SMARTCAPTCHA_SITE!}
+        onVerify={setCaptchaToken}
+        onExpire={() => {
+          setCaptchaToken(null);
+          setCaptchaExpired(true);
+        }}
+        className="my-4"
+      />
 
       <button
         type="submit"
