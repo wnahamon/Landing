@@ -3,12 +3,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
-import SmartCaptcha from "@/components/SmartCaptcha";
+
+import SmartCaptcha from "./Captcha";
 
 export const formSchema = z.object({
   name: z.string().min(2, "Минимум 2 символа"),
   phone: z.string().regex(/^\+?[0-9\s-()]{10,18}$/, "Неверный формат телефона"),
-  message: z.string().max(500).default(""),
+  message: z.string().max(500),
   consent: z.boolean().refine((val) => val === true, {
     message: "Необходимо согласие на обработку персональных данных",
   }),
@@ -170,7 +171,6 @@ export default function ConslForm() {
         <p className="text-sm text-red-600">{errors.consent.message}</p>
       )}
 
-      {/* ✅ СмартКапча вместо статичного div */}
       <SmartCaptcha
         siteKey={process.env.NEXT_PUBLIC_YANDEX_SMARTCAPTCHA_SITE!}
         onVerify={setCaptchaToken}
