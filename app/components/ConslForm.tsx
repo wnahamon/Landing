@@ -9,7 +9,7 @@ import Captcha from "./Captcha";
 export const formSchema = z.object({
   name: z.string().min(2, "Минимум 2 символа"),
   phone: z.string().regex(/^\+?[0-9\s-()]{10,18}$/, "Неверный формат телефона"),
-  message: z.string().max(500).default(""),
+  message: z.string().max(500),
   consent: z.boolean().refine((val) => val === true, {
     message: "Необходимо согласие на обработку персональных данных",
   }),
