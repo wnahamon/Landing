@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 declare global {
   interface Window {
@@ -8,15 +8,15 @@ declare global {
         options: {
           sitekey: string;
           callback: (token: string) => void;
-          'error-callback'?: (error: unknown) => void;
-        }
+          "error-callback"?: (error: unknown) => void;
+        },
       ) => void;
       reset: (container: HTMLElement) => void;
     };
   }
 }
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 interface CaptchaProps {
   onVerify: (token: string) => void;
@@ -24,7 +24,11 @@ interface CaptchaProps {
   resetTrigger?: boolean; // для сброса после отправки формы
 }
 
-export default function Captcha({ onVerify, onError, resetTrigger }: CaptchaProps) {
+export default function Captcha({
+  onVerify,
+  onError,
+  resetTrigger,
+}: CaptchaProps) {
   const captchaRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
 
@@ -39,25 +43,24 @@ export default function Captcha({ onVerify, onError, resetTrigger }: CaptchaProp
     const init = () => {
       if (!window.smartCaptcha || !container) return;
       window.smartCaptcha.render(container, {
-        sitekey: 'ysc1_Y9ltN9soPahKJ8GlyZmvRP29C0Mk0N4TVZKij7PSb497a0a1',
+        sitekey: "ysc1_Y9ltN9soPahKJ8GlyZmvRP29C0Mk0N4TVZKij7PSb497a0a1",
         callback: (token) => onVerify(token),
-        'error-callback': () => onError('Ошибка проверки капчи'),
+        "error-callback": () => onError("Ошибка проверки капчи"),
       });
     };
 
     if (window.smartCaptcha) {
       init();
     } else {
-      const script = document.createElement('script');
-      script.src = 'https://smartcaptcha.cloud.yandex.ru/captcha.js';
+      const script = document.createElement("script");
+      script.src = "https://smartcaptcha.cloud.yandex.ru/captcha.js";
       script.async = true;
       script.onload = init;
-      script.onerror = () => onError('Не удалось загрузить капчу');
+      script.onerror = () => onError("Не удалось загрузить капчу");
       document.head.appendChild(script);
     }
   }, []);
 
-  // Сброс капчи после успешной отправки формы
   useEffect(() => {
     if (resetTrigger && window.smartCaptcha && captchaRef.current) {
       window.smartCaptcha.reset(captchaRef.current);

@@ -43,10 +43,9 @@ export default function ConslForm() {
   const [serverError, setServerError] = useState<string>("");
   const [isVerifyingCaptcha, setIsVerifyingCaptcha] = useState(false);
 
-  // Валидация капчи на бэкенде
   const verifyCaptchaOnServer = async (token: string): Promise<boolean> => {
     try {
-      const res = await fetch("/api/verify-captcha", {
+      const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
@@ -60,7 +59,7 @@ export default function ConslForm() {
   };
 
   const onSubmit = async (data: FormData) => {
-    // Проверка honeypot (антиспам)
+
     if (data.honeypot) {
       console.log("Bot detected (honeypot)");
       setStatus("success"); // тихо возвращаем успех, чтобы бот не понял
@@ -72,21 +71,21 @@ export default function ConslForm() {
     setServerError("");
     setIsVerifyingCaptcha(true);
 
-    // 1. Проверяем капчу на сервере
-    const isCaptchaValid = await verifyCaptchaOnServer(data.captchaToken);
-    setIsVerifyingCaptcha(false);
 
-    if (!isCaptchaValid) {
-      setError("captchaToken", {
-        type: "manual",
-        message: "Проверка капчи не пройдена. Попробуйте ещё раз.",
-      });
-      // Сбросить токен капчи, чтобы пользователь прошёл её заново
-      setValue("captchaToken", "");
-      return;
-    }
+    // const isCaptchaValid = await verifyCaptchaOnServer(data.captchaToken);
+    // setIsVerifyingCaptcha(false);
 
-    // 2. Отправляем данные формы на основной API
+    // if (!isCaptchaValid) {
+    //   setError("captchaToken", {
+    //     type: "manual",
+    //     message: "Проверка капчи не пройдена. Попробуйте ещё раз.",
+    //   });
+    //   
+    //   setValue("captchaToken", "");
+    //   return;
+    // }
+
+
     try {
       const res = await fetch("/api/submit", {
         method: "POST",
@@ -216,7 +215,7 @@ export default function ConslForm() {
         <Captcha
           onVerify={(token) => {
             setValue("captchaToken", token, { shouldValidate: true });
-            // Очищаем предыдущую ошибку капчи при успешном получении токена
+            
             if (errors.captchaToken) {
               setError("captchaToken", { message: "" });
             }
