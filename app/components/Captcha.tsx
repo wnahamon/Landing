@@ -1,68 +1,68 @@
 'use client';
 
-declare const window: Window & { smartCaptcha?: {
-  render: (container: HTMLElement, options: { sitekey: string }) => void;
-  getToken: (container: HTMLElement) => string | null;
-  reset: (container: HTMLElement) => void;
-} };
+declare global {
+  interface Window {
+    smartCaptcha?: {
+      render: (
+        container: HTMLElement,
+        options: {
+          sitekey: string;
+          callback: (token: string) => void;
+          'error-callback'?: (error: unknown) => void;
+        }
+      ) => void;
+      reset: (container: HTMLElement) => void;
+    };
+  }
+}
 
-import { useEffect, useRef, RefObject } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface CaptchaProps {
   onVerify: (token: string) => void;
   onError: (message: string) => void;
+  resetTrigger?: boolean; // для сброса после отправки формы
 }
 
-export default function Captcha({ onVerify, onError }: CaptchaProps) {
+export default function Captcha({ onVerify, onError, resetTrigger }: CaptchaProps) {
   const captchaRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
 
+  // Инициализация при монтировании
   useEffect(() => {
-    // Загружаем скрипт SmartCaptcha
-    const script = document.createElement('script');
-    script.src = 'https://smartcaptcha.cloud.yandex.ru/captcha.js';
-    script.async = true;
-    script.defer = true;
+    if (initializedRef.current) return;
+    initializedRef.current = true;
 
-    script.onload = () => {
-      // Инициализируем капчу после загрузки скрипта
-      if (window.smartCaptcha && captchaRef.current) {
-        window.smartCaptcha.render(captchaRef.current, {
-          sitekey: 'ysc1_Y9ltN9soPahKJ8GlyZmvRP29C0Mk0N4TVZKij7PSb497a0a1', // замените на ваш ключ
-        });
-      }
+    const container = captchaRef.current;
+    if (!container) return;
+
+    const init = () => {
+      if (!window.smartCaptcha || !container) return;
+      window.smartCaptcha.render(container, {
+        sitekey: 'ysc1_Y9ltN9soPahKJ8GlyZmvRP29C0Mk0N4TVZKij7PSb497a0a1',
+        callback: (token) => onVerify(token),
+        'error-callback': () => onError('Ошибка проверки капчи'),
+      });
     };
 
-    document.head.appendChild(script);
-
-    return () => {
-      // Очистка: удаляем скрипт при размонтировании компонента
-      document.head.removeChild(script);
-    };
+    if (window.smartCaptcha) {
+      init();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://smartcaptcha.cloud.yandex.ru/captcha.js';
+      script.async = true;
+      script.onload = init;
+      script.onerror = () => onError('Не удалось загрузить капчу');
+      document.head.appendChild(script);
+    }
   }, []);
 
-  const handleVerify = () => {
-    if (window.smartCaptcha) {
-      const token = window.smartCaptcha.getToken(captchaRef.current!);
-      if (token) {
-        onVerify(token);
-      } else {
-        onError('Пожалуйста, пройдите проверку капчи');
-      }
-    } else {
-      onError('Сервис капчи не загружен');
+  // Сброс капчи после успешной отправки формы
+  useEffect(() => {
+    if (resetTrigger && window.smartCaptcha && captchaRef.current) {
+      window.smartCaptcha.reset(captchaRef.current);
     }
-  };
+  }, [resetTrigger]);
 
-  return (
-    <div>
-      <div ref={captchaRef} className="smart-captcha" />
-      <button
-        type="button"
-        onClick={handleVerify}
-        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-      >
-        Проверить капчу
-      </button>
-    </div>
-  );
+  return <div ref={captchaRef} className="smart-captcha" />;
 }
